@@ -1,0 +1,831 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Пропавший артефакт - Игра-расследование</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;500&display=swap');
+
+        body {
+            font-family: 'Roboto', sans-serif;
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+
+        .title-font {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .crime-scene {
+            background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiPjxkZWZzPjxwYXR0ZXJuIGlkPSJwYXR0ZXJuIiB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHBhdHRlcm5Vbml0cz0idXNlclNwYWNlT25Vc2UiIHBhdHRlcm5UcmFuc2Zvcm09InJvdGF0ZSg0NSkiPjxyZWN0IHdpZHRoPSIyMCIgaGVpZ2h0PSIyMCIgZmlsbD0icmdiYSgzMCwgNDEsIDUxLCAwLjEpIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI3BhdHRlcm4pIi8+PC9zdmc+');
+        }
+
+        .evidence-card {
+            transition: all 0.3s ease;
+            transform-style: preserve-3d;
+        }
+
+        .evidence-card:hover {
+            transform: translateY(-5px) rotateX(5deg);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+        }
+
+        .suspect-silhouette {
+            filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.2));
+        }
+
+        .typewriter {
+            overflow: hidden;
+            border-right: 3px solid #4f46e5;
+            white-space: nowrap;
+            margin: 0 auto;
+            letter-spacing: 0.15em;
+            animation: typing 3.5s steps(40, end), blink-caret 0.75s step-end infinite;
+        }
+
+        @keyframes typing {
+            from { width: 0 }
+            to { width: 100% }
+        }
+
+        @keyframes blink-caret {
+            from, to { border-color: transparent }
+            50% { border-color: #4f46e5 }
+        }
+
+        .progress-bar {
+            height: 6px;
+            background-color: #1e293b;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #4f46e5, #8b5cf6);
+            transition: width 0.5s ease;
+        }
+
+        .tooltip {
+            position: relative;
+        }
+
+        .tooltip-text {
+            visibility: hidden;
+            width: 200px;
+            background-color: #1e293b;
+            color: #fff;
+            text-align: center;
+            border-radius: 6px;
+            padding: 8px;
+            position: absolute;
+            z-index: 1;
+            bottom: 125%;
+            left: 50%;
+            transform: translateX(-50%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tooltip:hover .tooltip-text {
+            visibility: visible;
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <div class="container mx-auto px-4 py-8">
+        <!-- Header -->
+        <header class="mb-8 text-center">
+            <h1 class="title-font text-4xl md:text-5xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-600 mb-2">
+                Пропавший артефакт
+            </h1>
+            <p class="text-lg text-slate-400">Игра-расследование</p>
+
+            <div class="progress-bar rounded-full mt-6 w-full md:w-3/4 mx-auto">
+                <div id="progress-fill" class="progress-fill rounded-full" style="width: 0%"></div>
+            </div>
+            <p id="progress-text" class="text-sm text-slate-400 mt-2">Прогресс: 0%</p>
+        </header>
+
+        <!-- Main Game Area -->
+        <main>
+            <!-- Stage 1: Introduction -->
+            <section id="stage-1" class="mb-12">
+                <div class="bg-slate-800 rounded-xl p-6 shadow-lg">
+                    <div class="flex items-start mb-6">
+                        <div class="bg-indigo-600 rounded-full w-16 h-16 flex items-center justify-center mr-4">
+                            <i class="fas fa-user-secret text-2xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold mb-1">Артем "Слепой Глаз"</h2>
+                            <p class="text-slate-400 text-sm">Ваш наставник в расследовании</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-700 rounded-lg p-4 mb-6">
+                        <p id="intro-message" class="typewriter">
+                            Добро пожаловать в мир расследований! Сегодня твоей задачей будет выяснить, кто похитил древний артефакт из музея. Начнем с места преступления.
+                        </p>
+                    </div>
+
+                    <div class="crime-scene bg-slate-900 rounded-lg p-6 mb-6">
+                        <h3 class="font-bold text-lg mb-4 flex items-center">
+                            <i class="fas fa-map-marked-alt mr-2 text-indigo-500"></i> Место преступления
+                        </h3>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div class="bg-black bg-opacity-50 rounded-lg overflow-hidden">
+                                <div class="h-48 bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center">
+                                    <i class="fas fa-camera-retro text-4xl text-gray-600"></i>
+                                </div>
+                                <div class="p-4">
+                                    <h4 class="font-medium mb-2">Зал древностей</h4>
+                                    <p class="text-sm text-slate-400">Пустая витрина, где находился артефакт</p>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 class="font-medium mb-2">Досье по делу:</h4>
+                                <div class="bg-slate-800 rounded-lg p-4 text-sm">
+                                    <p class="mb-2"><span class="font-medium">Артефакт:</span> Золотой скифский гребень</p>
+                                    <p class="mb-2"><span class="font-medium">Дата кражи:</span> Прошлой ночью</p>
+                                    <p class="mb-2"><span class="font-medium">Стоимость:</span> Около $2 млн</p>
+                                    <p><span class="font-medium">Особые приметы:</span> Украшен гранатами, имеет уникальную гравировку</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <h3 class="font-bold text-lg mb-4">Выберите стратегию расследования:</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <button onclick="selectStrategy('scene')" class="evidence-card bg-slate-700 hover:bg-slate-600 rounded-lg p-4 text-left transition">
+                            <i class="fas fa-search text-indigo-500 mb-2"></i>
+                            <h4 class="font-medium mb-1">Осмотреть место преступления</h4>
+                            <p class="text-sm text-slate-400">Изучить детали на месте происшествия</p>
+                        </button>
+                        <button onclick="selectStrategy('witnesses')" class="evidence-card bg-slate-700 hover:bg-slate-600 rounded-lg p-4 text-left transition">
+                            <i class="fas fa-users text-indigo-500 mb-2"></i>
+                            <h4 class="font-medium mb-1">Опросить свидетелей</h4>
+                            <p class="text-sm text-slate-400">Получить показания от сотрудников</p>
+                        </button>
+                        <button onclick="selectStrategy('evidence')" class="evidence-card bg-slate-700 hover:bg-slate-600 rounded-lg p-4 text-left transition">
+                            <i class="fas fa-fingerprint text-indigo-500 mb-2"></i>
+                            <h4 class="font-medium mb-1">Анализ улик</h4>
+                            <p class="text-sm text-slate-400">Изучить собранные доказательства</p>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Stage 2: Evidence Collection (hidden initially) -->
+            <section id="stage-2" class="mb-12 hidden">
+                <div class="bg-slate-800 rounded-xl p-6 shadow-lg">
+                    <div class="flex items-start mb-6">
+                        <div class="bg-indigo-600 rounded-full w-16 h-16 flex items-center justify-center mr-4">
+                            <i class="fas fa-user-secret text-2xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold mb-1">Артем "Слепой Глаз"</h2>
+                            <p class="text-slate-400 text-sm">Ваш наставник в расследовании</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-700 rounded-lg p-4 mb-6">
+                        <p id="evidence-message">
+                            Отличный выбор! Давайте изучим улики. Вот что удалось собрать на месте преступления.
+                        </p>
+                    </div>
+
+                    <h3 class="font-bold text-lg mb-4">Собранные улики:</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        <div class="evidence-card bg-slate-900 rounded-lg overflow-hidden">
+                            <div class="h-48 bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center relative">
+                                <i class="fas fa-video text-4xl text-gray-600"></i>
+                                <button onclick="analyzeVideo()" class="absolute bottom-4 right-4 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-full text-sm flex items-center">
+                                    <i class="fas fa-play mr-1"></i> Анализировать
+                                </button>
+                            </div>
+                            <div class="p-4">
+                                <h4 class="font-medium mb-2">Видео с камеры наблюдения</h4>
+                                <p class="text-sm text-slate-400">Запись с главного зала, время кражи 02:15-02:30</p>
+                            </div>
+                        </div>
+                        <div class="evidence-card bg-slate-900 rounded-lg overflow-hidden">
+                            <div class="h-48 bg-gradient-to-br from-gray-900 to-gray-800 flex items-center justify-center relative">
+                                <i class="fas fa-image text-4xl text-gray-600"></i>
+                                <button onclick="analyzePhoto()" class="absolute bottom-4 right-4 bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1 rounded-full text-sm flex items-center">
+                                    <i class="fas fa-search mr-1"></i> Исследовать
+                                </button>
+                            </div>
+                            <div class="p-4">
+                                <h4 class="font-medium mb-2">Фото места преступления</h4>
+                                <p class="text-sm text-slate-400">Снимки витрины и окружающей территории</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="video-analysis-result" class="hidden bg-slate-900 rounded-lg p-4 mb-6">
+                        <h4 class="font-medium mb-2 flex items-center">
+                            <i class="fas fa-video text-indigo-500 mr-2"></i> Результаты анализа видео
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm mb-2">На видео обнаружен подозрительный человек:</p>
+                                <div class="suspect-silhouette bg-gray-800 rounded-lg p-4 flex flex-col items-center">
+                                    <div class="w-24 h-32 bg-gray-700 rounded mb-2 relative">
+                                        <div class="absolute top-2 left-1/2 transform -translate-x-1/2 w-16 h-8 bg-gray-600 rounded-full"></div>
+                                        <div class="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-20 h-16 bg-gray-600"></div>
+                                    </div>
+                                    <p class="text-xs text-center">Рост ~180 см, темная одежда, шляпа</p>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-sm mb-2">Детали:</p>
+                                <ul class="text-sm space-y-2">
+                                    <li class="flex items-start">
+                                        <i class="fas fa-clock text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Время появления: 02:17</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-map-marker-alt text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Восточный выход из зала</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-car text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Возможно, VIN: ...KLM789...</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="photo-analysis-result" class="hidden bg-slate-900 rounded-lg p-4 mb-6">
+                        <h4 class="font-medium mb-2 flex items-center">
+                            <i class="fas fa-image text-indigo-500 mr-2"></i> Результаты анализа фото
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm mb-2">На фото обнаружены важные детали:</p>
+                                <div class="bg-gray-800 rounded-lg p-3">
+                                    <p class="text-xs font-mono bg-black p-2 rounded">Кодовый номер: XJ-459-782</p>
+                                </div>
+                            </div>
+                            <div>
+                                <p class="text-sm mb-2">Другие находки:</p>
+                                <ul class="text-sm space-y-2">
+                                    <li class="flex items-start">
+                                        <i class="fas fa-shoe-prints text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Отпечатки обуви (размер 43)</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-toolbox text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Следы инструмента на витрине</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-tshirt text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Обрывок ткани (черный, шерсть)</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="stage-2-next" class="hidden text-center">
+                        <button onclick="nextStage(3)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-full font-medium">
+                            Перейти к анализу данных <i class="fas fa-arrow-right ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Stage 3: Data Analysis (hidden initially) -->
+            <section id="stage-3" class="mb-12 hidden">
+                <div class="bg-slate-800 rounded-xl p-6 shadow-lg">
+                    <div class="flex items-start mb-6">
+                        <div class="bg-indigo-600 rounded-full w-16 h-16 flex items-center justify-center mr-4">
+                            <i class="fas fa-user-secret text-2xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold mb-1">Артем "Слепой Глаз"</h2>
+                            <p class="text-slate-400 text-sm">Ваш наставник в расследовании</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-700 rounded-lg p-4 mb-6">
+                        <p>
+                            Теперь нужно связать все улики воедино. Используйте OSINT-инструменты для поиска дополнительной информации.
+                        </p>
+                    </div>
+
+                    <h3 class="font-bold text-lg mb-4">Инструменты анализа:</h3>
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                        <div class="evidence-card bg-slate-900 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <div class="bg-indigo-900 text-indigo-300 rounded-full w-10 h-10 flex items-center justify-center mr-3">
+                                    <i class="fas fa-car"></i>
+                                </div>
+                                <h4 class="font-medium">Поиск по VIN</h4>
+                            </div>
+                            <p class="text-sm text-slate-400 mb-3">Найдите владельца автомобиля по части VIN-кода</p>
+                            <div class="flex">
+                                <input type="text" id="vin-input" class="bg-slate-800 text-sm rounded-l-lg px-3 py-2 w-full" placeholder="Введите часть VIN..." value="KLM789">
+                                <button onclick="searchVin()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-r-lg text-sm">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="evidence-card bg-slate-900 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <div class="bg-indigo-900 text-indigo-300 rounded-full w-10 h-10 flex items-center justify-center mr-3">
+                                    <i class="fas fa-id-card"></i>
+                                </div>
+                                <h4 class="font-medium">Поиск по коду</h4>
+                            </div>
+                            <p class="text-sm text-slate-400 mb-3">Проверьте кодовый номер в базе данных</p>
+                            <div class="flex">
+                                <input type="text" id="code-input" class="bg-slate-800 text-sm rounded-l-lg px-3 py-2 w-full" placeholder="Введите код..." value="XJ-459-782">
+                                <button onclick="searchCode()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-r-lg text-sm">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="evidence-card bg-slate-900 rounded-lg p-4">
+                            <div class="flex items-center mb-3">
+                                <div class="bg-indigo-900 text-indigo-300 rounded-full w-10 h-10 flex items-center justify-center mr-3">
+                                    <i class="fas fa-user-tie"></i>
+                                </div>
+                                <h4 class="font-medium">База подозреваемых</h4>
+                            </div>
+                            <p class="text-sm text-slate-400 mb-3">Сравните с известными преступниками</p>
+                            <button onclick="searchSuspects()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-2 rounded-lg text-sm">
+                                <i class="fas fa-search mr-1"></i> Проверить
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="vin-search-result" class="hidden bg-slate-900 rounded-lg p-4 mb-6">
+                        <h4 class="font-medium mb-2 flex items-center">
+                            <i class="fas fa-car text-indigo-500 mr-2"></i> Результаты поиска по VIN
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm mb-2">Найден автомобиль:</p>
+                                <ul class="text-sm space-y-2">
+                                    <li class="flex items-start">
+                                        <i class="fas fa-car text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Модель: Lexus RX 350</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-palette text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Цвет: Черный</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-id-card text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Владелец: Иван Петров</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-map-marker-alt text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Адрес: ул. Центральная, 45</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p class="text-sm mb-2">Дополнительная информация:</p>
+                                <ul class="text-sm space-y-2">
+                                    <li class="flex items-start">
+                                        <i class="fas fa-clock text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Зарегистрирован: 2020 год</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-exclamation-triangle text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Причастен к 2 кражам в 2022</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-phone text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Телефон: +7 905 XXX-XX-XX</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="code-search-result" class="hidden bg-slate-900 rounded-lg p-4 mb-6">
+                        <h4 class="font-medium mb-2 flex items-center">
+                            <i class="fas fa-id-card text-indigo-500 mr-2"></i> Результаты поиска по коду
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm mb-2">Код относится к:</p>
+                                <ul class="text-sm space-y-2">
+                                    <li class="flex items-start">
+                                        <i class="fas fa-building text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Компания: "Антиквариат Сервис"</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-user-tie text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Клиент: Иван Петров</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-calendar-alt text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Дата: 15.05.2023</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p class="text-sm mb-2">Детали заказа:</p>
+                                <ul class="text-sm space-y-2">
+                                    <li class="flex items-start">
+                                        <i class="fas fa-tools text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Инструменты для вскрытия витрин</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-info-circle text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Оплата наличными</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="suspects-search-result" class="hidden bg-slate-900 rounded-lg p-4 mb-6">
+                        <h4 class="font-medium mb-2 flex items-center">
+                            <i class="fas fa-user-tie text-indigo-500 mr-2"></i> Результаты поиска в базе
+                        </h4>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <p class="text-sm mb-2">Совпадение найдено:</p>
+                                <div class="flex items-center mb-3">
+                                    <div class="w-16 h-16 bg-gray-700 rounded-full mr-4 flex items-center justify-center">
+                                        <i class="fas fa-user text-xl"></i>
+                                    </div>
+                                    <div>
+                                        <h5 class="font-medium">Иван Петров</h5>
+                                        <p class="text-xs text-slate-400">AKA "Черный Иван"</p>
+                                    </div>
+                                </div>
+                                <ul class="text-sm space-y-2">
+                                    <li class="flex items-start">
+                                        <i class="fas fa-id-card text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Возраст: 38 лет</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-ruler text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Рост: 182 см, вес: 85 кг</span>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div>
+                                <p class="text-sm mb-2">Криминальная история:</p>
+                                <ul class="text-sm space-y-2">
+                                    <li class="flex items-start">
+                                        <i class="fas fa-gem text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Специализация: кражи антиквариата</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-clipboard-list text-indigo-500 mr-2 mt-1"></i>
+                                        <span>5 судимостей, последняя в 2021</span>
+                                    </li>
+                                    <li class="flex items-start">
+                                        <i class="fas fa-shoe-prints text-indigo-500 mr-2 mt-1"></i>
+                                        <span>Обувь: 43 размер</span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="stage-3-conclusion" class="hidden bg-indigo-900 bg-opacity-30 rounded-lg p-4 mb-6">
+                        <h4 class="font-medium mb-2 flex items-center">
+                            <i class="fas fa-lightbulb text-yellow-400 mr-2"></i> Выводы
+                        </h4>
+                        <p class="text-sm mb-3">Все улики указывают на Ивана Петрова, известного как "Черный Иван". Его автомобиль был замечен на месте преступления, он заказывал инструменты для вскрытия витрин, а его описание совпадает с данными свидетелей.</p>
+                        <p class="text-sm">Артефакт, вероятно, находится по адресу: <span class="font-medium">ул. Центральная, 45</span></p>
+                    </div>
+
+                    <div id="stage-3-next" class="hidden text-center">
+                        <button onclick="nextStage(4)" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-full font-medium">
+                            Завершить расследование <i class="fas fa-flag-checkered ml-2"></i>
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Stage 4: Conclusion (hidden initially) -->
+            <section id="stage-4" class="mb-12 hidden">
+                <div class="bg-slate-800 rounded-xl p-6 shadow-lg">
+                    <div class="flex items-start mb-6">
+                        <div class="bg-indigo-600 rounded-full w-16 h-16 flex items-center justify-center mr-4">
+                            <i class="fas fa-user-secret text-2xl"></i>
+                        </div>
+                        <div>
+                            <h2 class="text-xl font-bold mb-1">Артем "Слепой Глаз"</h2>
+                            <p class="text-slate-400 text-sm">Ваш наставник в расследовании</p>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-700 rounded-lg p-4 mb-6">
+                        <p>
+                            Отличная работа! Ты справился с первым заданием. Но впереди тебя ждет не менее сложное расследование.
+                        </p>
+                    </div>
+
+                    <div class="crime-scene bg-slate-900 rounded-lg p-6 mb-6">
+                        <h3 class="font-bold text-lg mb-4 text-center">Результаты расследования</h3>
+
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                            <div class="evidence-card bg-slate-800 rounded-lg p-4 text-center">
+                                <div class="bg-indigo-900 text-indigo-300 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-stopwatch text-2xl"></i>
+                                </div>
+                                <h4 class="font-medium mb-1">Время</h4>
+                                <p class="text-2xl font-bold text-indigo-400">24:35</p>
+                                <p class="text-xs text-slate-400">Затраченное время</p>
+                            </div>
+                            <div class="evidence-card bg-slate-800 rounded-lg p-4 text-center">
+                                <div class="bg-indigo-900 text-indigo-300 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-star text-2xl"></i>
+                                </div>
+                                <h4 class="font-medium mb-1">Очки</h4>
+                                <p class="text-2xl font-bold text-indigo-400">850</p>
+                                <p class="text-xs text-slate-400">Заработанные очки</p>
+                            </div>
+                            <div class="evidence-card bg-slate-800 rounded-lg p-4 text-center">
+                                <div class="bg-indigo-900 text-indigo-300 rounded-full w-16 h-16 flex items-center justify-center mx-auto mb-3">
+                                    <i class="fas fa-trophy text-2xl"></i>
+                                </div>
+                                <h4 class="font-medium mb-1">Рейтинг</h4>
+                                <p class="text-2xl font-bold text-indigo-400">A</p>
+                                <p class="text-xs text-slate-400">Ваша оценка</p>
+                            </div>
+                        </div>
+
+                        <div class="bg-slate-800 rounded-lg p-4 mb-6">
+                            <h4 class="font-medium mb-3 text-center">Достижения</h4>
+                            <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+                                <div class="bg-slate-700 rounded p-2 text-center">
+                                    <i class="fas fa-eye text-indigo-400 mb-1"></i>
+                                    <p class="text-xs">Находчивость</p>
+                                </div>
+                                <div class="bg-slate-700 rounded p-2 text-center">
+                                    <i class="fas fa-brain text-indigo-400 mb-1"></i>
+                                    <p class="text-xs">Аналитика</p>
+                                </div>
+                                <div class="bg-slate-700 rounded p-2 text-center">
+                                    <i class="fas fa-bolt text-indigo-400 mb-1"></i>
+                                    <p class="text-xs">Скорость</p>
+                                </div>
+                                <div class="bg-slate-700 rounded p-2 text-center">
+                                    <i class="fas fa-check-double text-indigo-400 mb-1"></i>
+                                    <p class="text-xs">Точность</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="text-center">
+                            <h4 class="font-medium mb-3">Следующее задание:</h4>
+                            <div class="evidence-card bg-gradient-to-br from-gray-900 to-indigo-900 rounded-lg p-4 inline-block text-left max-w-md">
+                                <h5 class="font-bold mb-1">"Тайна исчезнувшего поезда"</h5>
+                                <p class="text-sm mb-2">Расследование пропажи грузового состава с ценным грузом</p>
+                                <div class="flex items-center text-xs text-slate-400">
+                                    <span class="mr-3"><i class="fas fa-lock mr-1"></i> Заблокировано</span>
+                                    <span><i class="fas fa-star mr-1"></i> Требуется 1000 очков</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="text-center">
+                        <button onclick="restartGame()" class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded-full font-medium mr-3">
+                            <i class="fas fa-redo mr-2"></i> Начать заново
+                        </button>
+                        <button class="bg-slate-700 hover:bg-slate-600 text-white px-6 py-2 rounded-full font-medium">
+                            <i class="fas fa-trophy mr-2"></i> Таблица лидеров
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-12 text-center text-sm text-slate-500">
+            <p>Игра "Пропавший артефакт" © 2023</p>
+            <p class="mt-1">Используйте свои детективные навыки для раскрытия преступлений</p>
+        </footer>
+    </div>
+
+    <script>
+        // Game state
+        const gameState = {
+            currentStage: 1,
+            progress: 0,
+            strategy: null,
+            evidenceAnalyzed: {
+                video: false,
+                photo: false
+            },
+            searchesCompleted: {
+                vin: false,
+                code: false,
+                suspects: false
+            },
+            startTime: null,
+            endTime: null
+        };
+
+        // Initialize game
+        document.addEventListener('DOMContentLoaded', function() {
+            gameState.startTime = new Date();
+
+            // Simulate typewriter effect for intro message
+            setTimeout(() => {
+                document.getElementById('intro-message').classList.remove('typewriter');
+            }, 3500);
+        });
+
+        // Update progress bar
+        function updateProgress() {
+            let newProgress = 0;
+
+            if (gameState.currentStage === 1) {
+                newProgress = gameState.strategy ? 25 : 0;
+            } else if (gameState.currentStage === 2) {
+                const evidenceCount = Object.values(gameState.evidenceAnalyzed).filter(v => v).length;
+                newProgress = 25 + (evidenceCount * 25);
+            } else if (gameState.currentStage === 3) {
+                const searchCount = Object.values(gameState.searchesCompleted).filter(v => v).length;
+                newProgress = 50 + (searchCount * 15);
+                if (searchCount === 3) newProgress = 95;
+            } else if (gameState.currentStage === 4) {
+                newProgress = 100;
+            }
+
+            gameState.progress = newProgress;
+            document.getElementById('progress-fill').style.width = `${newProgress}%`;
+            document.getElementById('progress-text').textContent = `Прогресс: ${newProgress}%`;
+        }
+
+        // Select investigation strategy
+        function selectStrategy(strategy) {
+            gameState.strategy = strategy;
+            updateProgress();
+
+            // Show message based on strategy
+            let message = "";
+            switch(strategy) {
+                case 'scene':
+                    message = "Хороший выбор! Осмотр места преступления может дать важные улики. Давайте изучим детали на месте.";
+                    break;
+                case 'witnesses':
+                    message = "Отличная идея! Свидетели часто замечают важные детали. Давайте опросим сотрудников музея.";
+                    break;
+                case 'evidence':
+                    message = "Прямо к делу! Анализ улик - основа любого расследования. Давайте изучим собранные доказательства.";
+                    break;
+            }
+
+            // Show message and move to next stage after delay
+            const messageBox = document.getElementById('evidence-message');
+            messageBox.textContent = message;
+
+            setTimeout(() => {
+                nextStage(2);
+            }, 2000);
+        }
+
+        // Analyze video evidence
+        function analyzeVideo() {
+            gameState.evidenceAnalyzed.video = true;
+            document.getElementById('video-analysis-result').classList.remove('hidden');
+            updateProgress();
+            checkStage2Completion();
+        }
+
+        // Analyze photo evidence
+        function analyzePhoto() {
+            gameState.evidenceAnalyzed.photo = true;
+            document.getElementById('photo-analysis-result').classList.remove('hidden');
+            updateProgress();
+            checkStage2Completion();
+        }
+
+        // Check if stage 2 is complete
+        function checkStage2Completion() {
+            if (gameState.evidenceAnalyzed.video && gameState.evidenceAnalyzed.photo) {
+                document.getElementById('stage-2-next').classList.remove('hidden');
+            }
+        }
+
+        // Search VIN
+        function searchVin() {
+            gameState.searchesCompleted.vin = true;
+            document.getElementById('vin-search-result').classList.remove('hidden');
+            updateProgress();
+            checkStage3Completion();
+        }
+
+        // Search code
+        function searchCode() {
+            gameState.searchesCompleted.code = true;
+            document.getElementById('code-search-result').classList.remove('hidden');
+            updateProgress();
+            checkStage3Completion();
+        }
+
+        // Search suspects
+        function searchSuspects() {
+            gameState.searchesCompleted.suspects = true;
+            document.getElementById('suspects-search-result').classList.remove('hidden');
+            updateProgress();
+            checkStage3Completion();
+        }
+
+        // Check if stage 3 is complete
+        function checkStage3Completion() {
+            if (Object.values(gameState.searchesCompleted).every(v => v)) {
+                document.getElementById('stage-3-conclusion').classList.remove('hidden');
+                document.getElementById('stage-3-next').classList.remove('hidden');
+            }
+        }
+
+        // Move to next stage
+        function nextStage(stageNumber) {
+            // Hide current stage
+            document.getElementById(`stage-${gameState.currentStage}`).classList.add('hidden');
+
+            // Update current stage
+            gameState.currentStage = stageNumber;
+
+            // Show new stage
+            document.getElementById(`stage-${stageNumber}`).classList.remove('hidden');
+
+            // Scroll to top
+            window.scrollTo({top: 0, behavior: 'smooth'});
+
+            // If final stage, calculate results
+            if (stageNumber === 4) {
+                gameState.endTime = new Date();
+                calculateResults();
+            }
+        }
+
+        // Calculate final results
+        function calculateResults() {
+            // Calculate time spent (in seconds)
+            const timeSpent = Math.floor((gameState.endTime - gameState.startTime) / 1000);
+            const minutes = Math.floor(timeSpent / 60);
+            const seconds = timeSpent % 60;
+            document.querySelector('#stage-4 .text-2xl.text-indigo-400').textContent =
+                `${minutes}:${seconds.toString().padStart(2, '0')}`;
+
+            // Calculate score (850 is max for this demo)
+            let score = 850 - Math.floor(timeSpent / 5);
+            score = Math.max(500, score); // Minimum score
+            document.querySelectorAll('#stage-4 .text-2xl.text-indigo-400')[1].textContent = score;
+
+            // Determine rating
+            const rating = score >= 800 ? 'A' : score >= 700 ? 'B' : 'C';
+            document.querySelectorAll('#stage-4 .text-2xl.text-indigo-400')[2].textContent = rating;
+        }
+
+        // Restart game
+        function restartGame() {
+            // Reset game state
+            gameState.currentStage = 1;
+            gameState.progress = 0;
+            gameState.strategy = null;
+            gameState.evidenceAnalyzed = { video: false, photo: false };
+            gameState.searchesCompleted = { vin: false, code: false, suspects: false };
+            gameState.startTime = new Date();
+
+            // Update UI
+            updateProgress();
+
+            // Hide all stages except first
+            document.querySelectorAll('section[id^="stage-"]').forEach(section => {
+                section.classList.add('hidden');
+            });
+            document.getElementById('stage-1').classList.remove('hidden');
+
+            // Reset typewriter effect
+            const introMessage = document.getElementById('intro-message');
+            introMessage.classList.add('typewriter');
+            setTimeout(() => {
+                introMessage.classList.remove('typewriter');
+            }, 3500);
+
+            // Hide all results
+            document.getElementById('video-analysis-result').classList.add('hidden');
+            document.getElementById('photo-analysis-result').classList.add('hidden');
+            document.getElementById('stage-2-next').classList.add('hidden');
+            document.getElementById('vin-search-result').classList.add('hidden');
+            document.getElementById('code-search-result').classList.add('hidden');
+            document.getElementById('suspects-search-result').classList.add('hidden');
+            document.getElementById('stage-3-conclusion').classList.add('hidden');
+            document.getElementById('stage-3-next').classList.add('hidden');
+
+            // Scroll to top
+            window.scrollTo({top: 0, behavior: 'smooth'});
+        }
+    </script>
+</body>
+</html>
